@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>27AFLAM - Watch Movies Online</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header-auto">
+        <div class="header-container">
+            <a href="index.html" class="logo">27<span>AFLAM</span></a>
+            <nav>
+                <a href="#" class="nav-link active" data-genre="trending">Trending</a>
+                <a href="#" class="nav-link" data-genre="action">Action</a>
+                <a href="#" class="nav-link" data-genre="comedy">Comedy</a>
+                <a href="#" class="nav-link" data-genre="horror">Horror</a>
+                <a href="#" class="nav-link" data-genre="drama">Drama</a>
+                <a href="#" class="nav-link" data-genre="scifi">Sci-Fi</a>
+            </nav>
+            <div class="search-box">
+                <input type="text" id="search" placeholder="Search movies...">
+                <button id="search-btn">&#128269;</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" id="hero">
+            <div class="hero-backdrop"></div>
+            <div class="hero-gradient"></div>
+            <div class="hero-content">
+                <h1>Discover & Watch</h1>
+                <p>Stream the latest movies in HD quality</p>
+                <button id="hero-btn" class="btn-primary">Explore Now</button>
+            </div>
+        </section>
+
+        <section class="featured-section" id="featured">
+            <div class="featured-scroll" id="featured-scroll"></div>
+        </section>
+
+        <section class="movies-section">
+            <div id="sections-container">
+                <!-- Sections load dynamically -->
+            </div>
+            <div class="load-more-container">
+                <button id="load-more" class="btn-primary" style="display: none;">Load More</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <a href="index.html" class="footer-logo">27<span>AFLAM</span></a>
+                <p>Stream the latest movies and TV shows in HD quality. Free and fast.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a href="#" data-genre="trending">Trending</a>
+                <a href="#" data-genre="top-rated">Top Rated</a>
+                <a href="#" data-genre="now-playing">Now Playing</a>
+                <a href="#" data-genre="upcoming">Upcoming</a>
+            </div>
+            <div class="footer-links">
+                <h4>Genres</h4>
+                <a href="#" data-genre="action">Action</a>
+                <a href="#" data-genre="comedy">Comedy</a>
+                <a href="#" data-genre="horror">Horror</a>
+                <a href="#" data-genre="drama">Drama</a>
+            </div>
+            <div class="footer-links">
+                <h4>Info</h4>
+                <a href="#faq">FAQ</a>
+                <a href="#about">About</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>27AFLAM &copy; 2026 - Powered by TMDB</p>
+        </div>
+        <div id="faq" class="footer-faq">
+            <h3>FAQ</h3>
+            <details>
+                <summary>Is 27AFLAM free?</summary>
+                <p>Yes, 27AFLAM is completely free to use. No subscription required.</p>
+            </details>
+            <details>
+                <summary>How does streaming work?</summary>
+                <p>We embed streams from third-party providers. Just click a movie and watch instantly.</p>
+            </details>
+            <details>
+                <summary>Why are some movies not available?</summary>
+                <p>Availability depends on licensing and region. We update our library regularly.</p>
+            </details>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

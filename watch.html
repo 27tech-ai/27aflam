@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://api.themoviedb.org https://image.tmdb.org; frame-src https://streamimdb.ru; child-src https://streamimdb.ru;">
+    <title>Watch - 27AFLAM</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo">27<span>AFLAM</span></a>
+            <a href="index.html" class="back-link">&larr; Back</a>
+        </div>
+    </header>
+
+    <main class="watch-page">
+        <div class="player-container">
+            <div class="player-loading" id="player-loading"><div class="loading-spinner"></div></div>
+            <iframe id="player" src="" frameborder="0" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms" allow="autoplay; encrypted-media" referrerpolicy="no-referrer"></iframe>
+        </div>
+        <div class="movie-info" id="movie-info">
+            <h1 id="movie-title">Loading...</h1>
+            <div class="meta">
+                <span id="movie-rating" class="rating"></span>
+                <span id="movie-year"></span>
+                <span id="movie-genre"></span>
+                <span id="movie-runtime"></span>
+            </div>
+            <p id="movie-overview"></p>
+        </div>
+        <div class="cast-section" id="cast-section" style="display:none;">
+            <h3>Cast</h3>
+            <div class="cast-scroll" id="cast-scroll"></div>
+        </div>
+        <div class="similar-section" id="similar-section" style="display:none;">
+            <h3>Similar Movies</h3>
+            <div class="similar-grid" id="similar-grid"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-bottom"><p>27AFLAM &copy; 2026 - Powered by TMDB</p></div>
+    </footer>
+
+    <script>
+        const API_KEY = '581842026857dccc1762ce91bff8f0aa';
+        const BASE = 'https://api.themoviedb.org/3';
+        const IMG = 'https://image.tmdb.org/t/p/w185';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const p = new URLSearchParams(window.location.search);
+            const tmdbId = p.get('id'), imdbId = p.get('imdb'), title = p.get('title');
+            if (title) document.getElementById('movie-title').textContent = decodeURIComponent(title);
+
+            const player = document.getElementById('player');
+            const loadEl = document.getElementById('player-loading');
+            player.addEventListener('load', () => loadEl.style.display = 'none');
+            setTimeout(() => { if (loadEl.style.display !== 'none') loadEl.style.display = 'none'; }, 5000);
+
+            if (imdbId) { startPlayer(imdbId); loadDetails(tmdbId); }
+            else if (tmdbId) fetchAndPlay(tmdbId);
+        });
+
+        function startPlayer(imdbId) {
+            document.getElementById('player').src = `https://streamimdb.ru/embed/movie/${imdbId}`;
+        }
+
+        async function fetchAndPlay(tmdbId) {
+            try {
+                const r = await fetch(`${BASE}/movie/${tmdbId}/external_ids?api_key=${API_KEY}`);
+                const d = await r.json();
+                if (d.imdb_id) { startPlayer(d.imdb_id); loadDetails(tmdbId); }
+                else document.getElementById('player-loading').innerHTML = '<p class="error">No stream found.</p>';
+            } catch(e) { document.getElementById('player-loading').innerHTML = '<p class="error">Error loading player.</p>'; }
+        }
+
+        async function loadDetails(tmdbId) {
+            try {
+                const r = await fetch(`${BASE}/movie/${tmdbId}?api_key=${API_KEY}`);
+                const m = await r.json();
+                document.getElementById('movie-title').textContent = m.title;
+                document.getElementById('movie-overview').textContent = m.overview;
+                document.getElementById('movie-rating').textContent = `⭐ ${m.vote_average?.toFixed(1)||'N/A'}`;
+                document.getElementById('movie-year').textContent = m.release_date?.slice(0,4)||'';
+                document.getElementById('movie-genre').textContent = m.genres?.map(g=>g.name).join(', ')||'';
+                const rt = m.runtime;
+                if (rt) document.getElementById('movie-runtime').textContent = `${Math.floor(rt/60)}h ${rt%60}m`;
+
+                // Cast
+                const cr = await fetch(`${BASE}/movie/${tmdbId}/credits?api_key=${API_KEY}`);
+                const cd = await cr.json();
+                const cast = (cd.cast||[]).slice(0, 15);
+                if (cast.length) {
+                    document.getElementById('cast-section').style.display = 'block';
+                    document.getElementById('cast-scroll').innerHTML = cast.map(c => {
+                        const img = c.profile_path ? IMG + c.profile_path : '';
+                        return `<div class="cast-card">${img ? `<img src="${IMG + c.profile_path}" loading="lazy">` : ''}<div class="name">${c.name}</div><div class="char">${c.character||''}</div></div>`;
+                    }).join('');
+                }
+
+                // Similar
+                const sr = await fetch(`${BASE}/movie/${tmdbId}/similar?api_key=${API_KEY}`);
+                const sd = await sr.json();
+                const similar = (sd.results||[]).slice(0, 8);
+                if (similar.length) {
+                    document.getElementById('similar-section').style.display = 'block';
+                    document.getElementById('similar-grid').innerHTML = similar.map(s => {
+                        const poster = s.poster_path ? `https://image.tmdb.org/t/p/w300${s.poster_path}` : '';
+                        return `<div class="movie-card" onclick="window.location.href='watch.html?id=${s.id}&title=${encodeURIComponent(s.title||'')}'"><div class="poster-wrapper">${poster ? `<img src="${poster}" loading="lazy">` : ''}</div><div class="info"><div class="title">${s.title}</div></div></div>`;
+                    }).join('');
+                }
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>
