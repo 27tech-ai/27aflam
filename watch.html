@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch - 27AFLAM</title>
+    <meta name="description" content="Watch movies and TV episodes online on 27AFLAM with fast HD streaming pages.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta property="og:type" content="video.movie">
+    <meta property="og:site_name" content="27AFLAM">
+    <meta property="og:title" content="Watch Online - 27AFLAM">
+    <meta property="og:description" content="Watch movies and TV episodes online on 27AFLAM.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         * {
@@ -378,7 +384,7 @@
     <main class="watch-page">
         <div class="servers-bar" id="servers-container">
             <div class="servers-header">
-                <span class="servers-label" id="servers-title-label">🎬 Select Server (16 sources)</span>
+                <span class="servers-label" id="servers-title-label">🎬 Select Server</span>
                 <span class="server-status" id="server-status">✅ StreamIMDb active</span>
             </div>
             <div class="servers-grid" id="server-buttons"></div>
@@ -433,19 +439,111 @@
         const ADULT_KEYWORDS = ['hentai', 'ecchi', 'porn', 'xxx', 'sex', 'nsfw', 'uncensored', 'erotic', '18+'];
         
         // سيرفرات الأفلام العادية
-        const SERVERS = [
-            { name: '🚀 StreamIMDb', url: (id) => `https://streamimdb.ru/embed/movie/${id}` },
-            { name: '📺 2Embed', url: (id) => `https://www.2embed.cc/embed/${id}` },
-            { name: '🎬 EmbedStream', url: (id) => `https://embedstream.com/movie/imdb/${id}` },
-            { name: '🍿 Movies2Watch', url: (id) => `https://movies2watch.cc/embed/movie/${id}` }
+        const MOVIE_SERVERS = [
+            { name: '🚀 StreamIMDb', needs: 'imdb', url: ({ imdb }) => `https://streamimdb.ru/embed/movie/${imdb}` },
+            { name: '🎞️ VidAPI', needs: 'tmdb', url: ({ tmdb, title }) => `https://vaplayer.ru/embed/movie/${tmdb}?primaryColor=%23e50914&title=${encodeURIComponent(title || '27AFLAM')}` },
+            { name: '📺 2Embed', needs: 'imdb', url: ({ imdb }) => `https://www.2embed.cc/embed/${imdb}` },
+            { name: '🎬 EmbedStream', needs: 'imdb', url: ({ imdb }) => `https://embedstream.com/movie/imdb/${imdb}` },
+            { name: '🍿 Movies2Watch', needs: 'imdb', url: ({ imdb }) => `https://movies2watch.cc/embed/movie/${imdb}` }
+        ];
+
+        const TV_SERVERS = [
+            { name: '🚀 StreamIMDb', url: ({ tmdb, season, episode }) => `https://streamimdb.ru/embed/tv/${tmdb}/${season}/${episode}` },
+            { name: '🎞️ VidAPI', url: ({ tmdb, season, episode, title }) => `https://vaplayer.ru/embed/tv/${tmdb}/${season}/${episode}?primaryColor=%23e50914&title=${encodeURIComponent(title || '27AFLAM')}` }
         ];
         
         let currentImdbId = null;
         let currentTmdbId = null;
-        let contentType = 'movie'; // الافتراضي هو فيلم
+        let contentType = 'movie'; // استقبال النوع من الرابط (movie أو tv أو anime)
         let currentSeason = 1;
         let currentEpisode = 1;
         let totalSeasons = 1;
+        let currentServerIndex = 0;
+        let currentTitle = '';
+
+        // Server health tracking
+        const SERVER_HEALTH = { failures: {}, lastCheck: 0 };
+        const PLAYER_LOAD_TIMEOUT = 15000;
+        let playerLoadTimer = null;
+
+        function reportServerFailure(serverName) {
+            SERVER_HEALTH.failures[serverName] = (SERVER_HEALTH.failures[serverName] || 0) + 1;
+            logPlayerFailure(serverName, SERVER_HEALTH.failures[serverName]);
+        }
+
+        function logPlayerFailure(serverName, failureCount) {
+            const entry = {
+                timestamp: new Date().toISOString(),
+                context: 'player_load_failure',
+                server: serverName,
+                failureCount
+            };
+            console.warn('[27AFLAM PLAYER]', entry);
+            try {
+                const logs = JSON.parse(localStorage.getItem('27aflam_logs') || '[]');
+                logs.push(entry);
+                if (logs.length > 100) logs.splice(0, 50);
+                localStorage.setItem('27aflam_logs', JSON.stringify(logs));
+            } catch {}
+        }
+
+        function findNextHealthyServer(currentIndex, servers) {
+            for (let i = 0; i < servers.length; i++) {
+                if (i === currentIndex) continue;
+                const failures = SERVER_HEALTH.failures[servers[i].name] || 0;
+                if (failures < 3) return i;
+            }
+            return -1;
+        }
+
+        function setupPlayerHealth() {
+            const player = document.getElementById('player');
+            const loadEl = document.getElementById('player-loading');
+
+            player.addEventListener('load', () => {
+                clearTimeout(playerLoadTimer);
+                loadEl.style.display = 'none';
+            });
+
+            player.addEventListener('error', () => {
+                handlePlayerError();
+            });
+
+            // Timeout detection
+            playerLoadTimer = setTimeout(() => {
+                if (loadEl.style.display !== 'none') {
+                    handlePlayerError();
+                }
+            }, PLAYER_LOAD_TIMEOUT);
+        }
+
+        function handlePlayerError() {
+            const servers = contentType === 'movie' ? MOVIE_SERVERS : TV_SERVERS;
+            const currentServer = servers[currentServerIndex];
+            if (!currentServer) return;
+
+            reportServerFailure(currentServer.name);
+            const failures = SERVER_HEALTH.failures[currentServer.name];
+
+            if (failures >= 2) {
+                const nextServer = findNextHealthyServer(currentServerIndex, servers);
+                if (nextServer >= 0) {
+                    document.getElementById('server-status').textContent = `⚠️ ${currentServer.name} slow, switching...`;
+                    document.getElementById('server-status').style.color = '#ff9800';
+                    setTimeout(() => {
+                        switchServer(nextServer);
+                    }, 1500);
+                    return;
+                }
+            }
+
+            document.getElementById('player-loading').innerHTML = `
+                <p class="error">Stream unavailable. Try another server.</p>
+                <p style="font-size:12px;color:#888;margin-top:8px;">${currentServer.name} is experiencing issues.</p>
+            `;
+            document.getElementById('server-status').textContent = `❌ ${currentServer.name} failed`;
+            document.getElementById('server-status').style.color = '#f44336';
+        }
 
         function addAdultFilter(url) {
             const u = new URL(url);
@@ -469,6 +567,115 @@
             document.getElementById('movie-overview').textContent = 'This title was blocked by adult-content filter.';
             document.getElementById('player-loading').innerHTML = '<p class="error">Adult content blocked.</p>';
         }
+
+        function setMeta(name, content, property = false) {
+            const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+            let tag = document.querySelector(selector);
+            if (!tag) {
+                tag = document.createElement('meta');
+                tag.setAttribute(property ? 'property' : 'name', name);
+                document.head.appendChild(tag);
+            }
+            tag.setAttribute('content', content);
+        }
+
+        function updateDocumentSeo(item) {
+            const title = item.title || item.name || 'Watch Online';
+            const description = item.overview || `Watch ${title} online on 27AFLAM.`;
+            document.title = `${title} - Watch Online | 27AFLAM`;
+            setMeta('description', description);
+            setMeta('og:title', `${title} - Watch Online | 27AFLAM`, true);
+            setMeta('og:description', description, true);
+            if (item.poster_path) setMeta('og:image', `${IMG}${item.poster_path}`, true);
+
+            // Structured data: Movie or TVSeries
+            const isTV = item.first_air_date || item.number_of_seasons;
+            const schemaType = isTV ? 'TVSeries' : 'Movie';
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": schemaType,
+                "name": title,
+                "description": description,
+                "image": item.poster_path ? `https://image.tmdb.org/t/p/w780${item.poster_path}` : undefined,
+                "datePublished": item.release_date || item.first_air_date || undefined,
+                "aggregateRating": item.vote_average ? {
+                    "@type": "AggregateRating",
+                    "ratingValue": item.vote_average.toFixed(1),
+                    "bestRating": "10",
+                    "worstRating": "1",
+                    "ratingCount": item.vote_count || 0
+                } : undefined,
+                "genre": item.genres?.map(g => g.name) || undefined
+            };
+            if (isTV) {
+                schema.numberOfSeasons = item.number_of_seasons || undefined;
+                schema.numberOfEpisodes = item.number_of_episodes || undefined;
+            } else if (item.runtime) {
+                schema.duration = `PT${item.runtime}M`;
+            }
+
+            // BreadcrumbList
+            const breadcrumb = {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "27AFLAM", "item": "https://27aflam.com/" },
+                    { "@type": "ListItem", "position": 2, "name": isTV ? "Series" : "Movies", "item": `https://27aflam.com/` },
+                    { "@type": "ListItem", "position": 3, "name": title }
+                ]
+            };
+
+            // Remove existing structured data if any
+            document.querySelectorAll('script[data-structured-data]').forEach(el => el.remove());
+
+            const itemSchema = document.createElement('script');
+            itemSchema.type = 'application/ld+json';
+            itemSchema.setAttribute('data-structured-data', 'true');
+            itemSchema.textContent = JSON.stringify({ "@graph": [schema, breadcrumb] });
+            document.head.appendChild(itemSchema);
+        }
+
+        function escapeHTML(value) {
+            return String(value || '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char]));
+        }
+
+        function similarCardHTML(item, type) {
+            const title = item.title || item.name || 'Untitled';
+            const poster = item.poster_path ? IMG + item.poster_path : '';
+            const year = (item.release_date || item.first_air_date || '').slice(0, 4);
+            const href = type === 'movie'
+                ? `watch.html?id=${item.id}&title=${encodeURIComponent(title)}`
+                : `watch.html?id=${item.id}&type=tv&title=${encodeURIComponent(title)}`;
+            return `
+                <div class="movie-card" onclick="window.location.href='${href}'">
+                    ${poster ? `<img src="${poster}" loading="lazy" alt="${escapeHTML(title)} poster">` : ''}
+                    <div class="info">
+                        <div class="title">${escapeHTML(title)}</div>
+                        <div style="font-size:11px;color:#888;">${year}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadSimilar(tmdbId, type) {
+            try {
+                const response = await fetch(addAdultFilter(`${BASE}/${type}/${tmdbId}/similar?api_key=${API_KEY}&page=1`));
+                const data = await response.json();
+                const items = (data.results || []).filter(item => !isBlockedContent(item)).slice(0, 12);
+                if (!items.length) return;
+
+                document.getElementById('similar-section').style.display = 'block';
+                document.getElementById('similar-grid').innerHTML = items.map(item => similarCardHTML(item, type)).join('');
+            } catch (error) {
+                console.error('Error loading similar titles:', error);
+            }
+        }
         
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -479,9 +686,7 @@
             const player = document.getElementById('player');
             const loadEl = document.getElementById('player-loading');
             
-            player.addEventListener('load', () => {
-                loadEl.style.display = 'none';
-            });
+            setupPlayerHealth();
             
             if (!currentTmdbId && imdbId) {
                 currentImdbId = imdbId;
@@ -493,7 +698,7 @@
                 if (imdbId) {
                     currentImdbId = imdbId;
                     renderMovieServers();
-                    startMoviePlayer(imdbId, 0);
+                    startMoviePlayer(0);
                     if (currentTmdbId) loadDetails(currentTmdbId, 'movie');
                 } else if (currentTmdbId) {
                     fetchImdbAndPlay(currentTmdbId);
@@ -501,6 +706,7 @@
             } else {
                 // نظام تشغيل المسلسلات والأنمي (tv / anime)
                 document.getElementById('servers-container').style.display = 'none'; // إخفاء سيرفرات الفيلم
+                renderTvServers();
                 document.getElementById('episodes-container').style.display = 'block'; // إظهار أزرار الحلقات
                 if (currentTmdbId) {
                     loadTVShow(currentTmdbId);
@@ -512,7 +718,7 @@
         // ─── وظائف الأفلام ───────────────────────────────────
         function renderMovieServers() {
             const container = document.getElementById('server-buttons');
-            container.innerHTML = SERVERS.map((server, index) => `
+            container.innerHTML = MOVIE_SERVERS.map((server, index) => `
                 <button class="server-btn" data-index="${index}" onclick="switchServer(${index})">
                     ${server.name}
                 </button>
@@ -526,15 +732,45 @@
         }
         
         window.switchServer = function(index) {
-            if (currentImdbId && SERVERS[index]) {
+            if (contentType === 'movie') {
+                if (!MOVIE_SERVERS[index]) return;
                 markServerActive(index);
-                startMoviePlayer(currentImdbId, index);
+                startMoviePlayer(index);
+            } else {
+                if (!TV_SERVERS[index]) return;
+                markServerActive(index);
+                currentServerIndex = index;
+                playEpisode(currentEpisode);
             }
         };
         
-        function startMoviePlayer(imdbId, serverIndex = 0) {
+        function startMoviePlayer(serverIndex = 0) {
+            const server = MOVIE_SERVERS[serverIndex];
+            if (!server) return;
+            if (server.needs === 'imdb' && !currentImdbId) {
+                document.getElementById('player-loading').innerHTML = '<p class="error">This server needs IMDb ID. Try VidAPI.</p>';
+                return;
+            }
+            if (server.needs === 'tmdb' && !currentTmdbId) {
+                document.getElementById('player-loading').innerHTML = '<p class="error">This server needs TMDB ID.</p>';
+                return;
+            }
+            currentServerIndex = serverIndex;
+            document.getElementById('server-status').textContent = `✅ ${server.name} active`;
             document.getElementById('player-loading').style.display = 'flex';
-            document.getElementById('player').src = SERVERS[serverIndex].url(imdbId);
+            document.getElementById('player').src = server.url({ imdb: currentImdbId, tmdb: currentTmdbId, title: currentTitle });
+        }
+
+        function renderTvServers() {
+            document.getElementById('servers-container').style.display = 'block';
+            document.getElementById('servers-title-label').textContent = '📺 Select Episode Server';
+            const container = document.getElementById('server-buttons');
+            container.innerHTML = TV_SERVERS.map((server, index) => `
+                <button class="server-btn" data-index="${index}" onclick="switchServer(${index})">
+                    ${server.name}
+                </button>
+            `).join('');
+            markServerActive(0);
         }
         
         async function fetchImdbAndPlay(tmdbId) {
@@ -544,10 +780,13 @@
                 if (data.imdb_id) {
                     currentImdbId = data.imdb_id;
                     renderMovieServers();
-                    startMoviePlayer(currentImdbId, 0);
+                    startMoviePlayer(0);
                     loadDetails(tmdbId, 'movie');
                 } else {
-                    document.getElementById('player-loading').innerHTML = '<p class="error">❌ No IMDb ID found.</p>';
+                    renderMovieServers();
+                    markServerActive(1);
+                    startMoviePlayer(1);
+                    loadDetails(tmdbId, 'movie');
                 }
             } catch(error) {
                 document.getElementById('player-loading').innerHTML = '<p class="error">❌ Failed to load.</p>';
@@ -616,9 +855,9 @@
             document.querySelectorAll(".ep-btn").forEach(b => b.classList.toggle("active", parseInt(b.textContent) === ep));
             
             document.getElementById('player-loading').style.display = 'flex';
-            // توليد الرابط المباشر للحلقة بناءً على السيرفر الحالي الشغال للمسلسلات والأنمي
-            const url = `https://streamimdb.ru/embed/tv/${currentTmdbId}/${currentSeason}/${ep}`;
-            document.getElementById("player").src = url;
+            const server = TV_SERVERS[currentServerIndex] || TV_SERVERS[0];
+            document.getElementById('server-status').textContent = `✅ ${server.name} active`;
+            document.getElementById("player").src = server.url({ tmdb: currentTmdbId, season: currentSeason, episode: ep, title: currentTitle });
         }
 
         // ─── جلب تفاصيل ومعلومات المحتوى ────────────────────────
@@ -627,6 +866,8 @@
                 const response = await fetch(addAdultFilter(`${BASE}/${type}/${tmdbId}?api_key=${API_KEY}`));
                 const item = await response.json();
                 if (isBlockedContent(item)) return blockContent();
+                updateDocumentSeo(item);
+                currentTitle = item.title || item.name || '';
                 
                 document.getElementById('movie-title').textContent = item.title || item.name;
                 document.getElementById('movie-overview').textContent = item.overview || 'No description available.';
@@ -658,6 +899,8 @@
                         `;
                     }).join('');
                 }
+
+                loadSimilar(tmdbId, type);
             } catch(error) {
                 console.error('Error loading details:', error);
             }

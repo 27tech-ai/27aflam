@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch Series & Anime - 27AFLAM</title>
+    <meta name="description" content="Watch TV series episodes online on 27AFLAM with season and episode navigation.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta property="og:type" content="video.tv_show">
+    <meta property="og:site_name" content="27AFLAM">
+    <meta property="og:title" content="Watch Series Online - 27AFLAM">
+    <meta property="og:description" content="Watch TV series episodes online on 27AFLAM.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         * {
@@ -94,6 +100,55 @@
             flex-direction: column;
             gap: 12px;
             z-index: 10;
+        }
+
+        .servers-bar {
+            background: #0f0f0f;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+        }
+
+        .servers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .servers-label {
+            font-size: 14px;
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        .server-status {
+            font-size: 12px;
+            color: #4caf50;
+        }
+
+        .servers-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .server-btn {
+            background: #1a1a1a;
+            border: none;
+            color: #fff;
+            padding: 7px 13px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .server-btn:hover,
+        .server-btn.active {
+            background: #e50914;
         }
         
         .loading-spinner {
@@ -320,6 +375,14 @@
     </header>
 
     <main class="watch-page">
+        <div class="servers-bar" id="servers-container">
+            <div class="servers-header">
+                <span class="servers-label">📺 Select Episode Server</span>
+                <span class="server-status" id="server-status">✅ StreamIMDb active</span>
+            </div>
+            <div class="servers-grid" id="server-buttons"></div>
+        </div>
+
         <div class="player-container">
             <div class="player-loading" id="player-loading">
                 <div class="loading-spinner"></div>
@@ -367,11 +430,17 @@
         const BASE = 'https://api.themoviedb.org/3';
         const IMG = 'https://image.tmdb.org/t/p/w185';
         const ADULT_KEYWORDS = ['hentai', 'ecchi', 'porn', 'xxx', 'sex', 'nsfw', 'uncensored', 'erotic', '18+'];
+        const TV_SERVERS = [
+            { name: '🚀 StreamIMDb', url: ({ tmdb, season, episode }) => `https://streamimdb.ru/embed/tv/${tmdb}/${season}/${episode}` },
+            { name: '🎞️ VidAPI', url: ({ tmdb, season, episode, title }) => `https://vaplayer.ru/embed/tv/${tmdb}/${season}/${episode}?primaryColor=%23e50914&title=${encodeURIComponent(title || '27AFLAM')}` }
+        ];
         
         let currentTmdbId = null;
         let currentSeason = 1;
         let currentEpisode = 1;
         let totalSeasons = 1;
+        let currentServerIndex = 0;
+        let currentTitle = '';
 
         function addAdultFilter(url) {
             const u = new URL(url);
@@ -394,6 +463,62 @@
             document.getElementById('movie-overview').textContent = 'This title was blocked by adult-content filter.';
             document.getElementById('player-loading').innerHTML = '<p class="error">Adult content blocked.</p>';
         }
+
+        function setMeta(name, content, property = false) {
+            const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+            let tag = document.querySelector(selector);
+            if (!tag) {
+                tag = document.createElement('meta');
+                tag.setAttribute(property ? 'property' : 'name', name);
+                document.head.appendChild(tag);
+            }
+            tag.setAttribute('content', content);
+        }
+
+        function updateDocumentSeo(item) {
+            const title = item.name || 'Watch Series';
+            const description = item.overview || `Watch ${title} episodes online on 27AFLAM.`;
+            document.title = `${title} - Watch Series Online | 27AFLAM`;
+            setMeta('description', description);
+            setMeta('og:title', `${title} - Watch Series Online | 27AFLAM`, true);
+            setMeta('og:description', description, true);
+            if (item.poster_path) setMeta('og:image', `${IMG}${item.poster_path}`, true);
+
+            // TVSeries structured data + BreadcrumbList
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": "TVSeries",
+                "name": title,
+                "description": description,
+                "image": item.poster_path ? `https://image.tmdb.org/t/p/w780${item.poster_path}` : undefined,
+                "datePublished": item.first_air_date || undefined,
+                "aggregateRating": item.vote_average ? {
+                    "@type": "AggregateRating",
+                    "ratingValue": item.vote_average.toFixed(1),
+                    "bestRating": "10",
+                    "worstRating": "1",
+                    "ratingCount": item.vote_count || 0
+                } : undefined,
+                "genre": item.genres?.map(g => g.name) || undefined,
+                "numberOfSeasons": item.number_of_seasons || undefined,
+                "numberOfEpisodes": item.number_of_episodes || undefined
+            };
+            const breadcrumb = {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "27AFLAM", "item": "https://27aflam.com/" },
+                    { "@type": "ListItem", "position": 2, "name": "Series", "item": "https://27aflam.com/" },
+                    { "@type": "ListItem", "position": 3, "name": title }
+                ]
+            };
+            document.querySelectorAll('script[data-structured-data]').forEach(el => el.remove());
+            const itemSchema = document.createElement('script');
+            itemSchema.type = 'application/ld+json';
+            itemSchema.setAttribute('data-structured-data', 'true');
+            itemSchema.textContent = JSON.stringify({ "@graph": [schema, breadcrumb] });
+            document.head.appendChild(itemSchema);
+        }
         
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -407,12 +532,34 @@
             });
             
             if (currentTmdbId) {
+                renderServers();
                 loadTVShow(currentTmdbId);
                 loadDetails(currentTmdbId);
             } else {
                 document.getElementById('movie-title').textContent = "Content not found";
             }
         });
+
+        function renderServers() {
+            const container = document.getElementById('server-buttons');
+            container.innerHTML = TV_SERVERS.map((server, index) => `
+                <button class="server-btn" data-index="${index}" onclick="switchServer(${index})">
+                    ${server.name}
+                </button>
+            `).join('');
+            markServerActive(0);
+        }
+
+        function markServerActive(index) {
+            document.querySelectorAll('.server-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+        }
+
+        window.switchServer = function(index) {
+            if (!TV_SERVERS[index]) return;
+            currentServerIndex = index;
+            markServerActive(index);
+            playEpisode(currentEpisode);
+        };
         
         async function loadTVShow(tmdbId) {
             try {
@@ -475,8 +622,9 @@
             document.querySelectorAll(".ep-btn").forEach(b => b.classList.toggle("active", parseInt(b.textContent) === ep));
             
             document.getElementById('player-loading').style.display = 'flex';
-            const url = `https://streamimdb.ru/embed/tv/${currentTmdbId}/${currentSeason}/${ep}`;
-            document.getElementById("player").src = url;
+            const server = TV_SERVERS[currentServerIndex] || TV_SERVERS[0];
+            document.getElementById('server-status').textContent = `✅ ${server.name} active`;
+            document.getElementById("player").src = server.url({ tmdb: currentTmdbId, season: currentSeason, episode: ep, title: currentTitle });
         }
 
         async function loadDetails(tmdbId) {
@@ -484,6 +632,8 @@
                 const response = await fetch(addAdultFilter(`${BASE}/tv/${tmdbId}?api_key=${API_KEY}`));
                 const item = await response.json();
                 if (isBlockedContent(item)) return blockContent();
+                updateDocumentSeo(item);
+                currentTitle = item.name || '';
                 
                 document.getElementById('movie-title').textContent = item.name;
                 document.getElementById('movie-overview').textContent = item.overview || 'No description available.';

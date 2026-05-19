@@ -1,41 +1,115 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>27AFLAM - Watch Movies Online</title>
+    <title>27AFLAM - Watch Movies, Series and Anime Online in HD</title>
+    <meta name="description" content="27AFLAM is a fast movie streaming directory for trending movies, TV series, anime, top rated titles, new releases and HD watch pages.">
+    <meta name="keywords" content="27AFLAM, watch movies online, streaming movies, HD movies, TV series, anime, trending movies, top rated movies">
+    <meta name="author" content="27AFLAM">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#e50914">
+    <meta name="color-scheme" content="dark">
+    <link rel="canonical" href="https://27aflam.com/">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="preconnect" href="https://api.themoviedb.org">
+    <link rel="preconnect" href="https://image.tmdb.org">
+    <link rel="dns-prefetch" href="https://streamimdb.ru">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="27AFLAM">
+    <meta property="og:title" content="27AFLAM - Watch Movies, Series and Anime Online in HD">
+    <meta property="og:description" content="Discover trending movies, TV shows and anime with fast HD watch pages on 27AFLAM.">
+    <meta property="og:url" content="https://27aflam.com/">
+    <meta property="og:image" content="https://27aflam.com/favicon.svg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="27AFLAM - Watch Movies, Series and Anime Online in HD">
+    <meta name="twitter:description" content="Discover trending movies, TV shows and anime with fast HD watch pages on 27AFLAM.">
     <link rel="stylesheet" href="style.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://27aflam.com/#website",
+          "name": "27AFLAM",
+          "url": "https://27aflam.com/",
+          "description": "Movie, TV series and anime streaming directory with HD watch pages.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://27aflam.com/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://27aflam.com/#organization",
+          "name": "27AFLAM",
+          "url": "https://27aflam.com/",
+          "logo": "https://27aflam.com/favicon.svg"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://27aflam.com/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Is 27AFLAM free?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. 27AFLAM can be used without a subscription." }
+            },
+            {
+              "@type": "Question",
+              "name": "What can I watch on 27AFLAM?",
+              "acceptedAnswer": { "@type": "Answer", "text": "27AFLAM organizes trending movies, top rated movies, TV series and anime with HD watch pages." }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 </head>
 <body>
-    <header class="header-auto">
+    <a href="#main-content" class="skip-link" aria-label="Skip to main content">Skip to main content</a>
+    <header class="header-auto" role="banner">
         <div class="header-container">
             <a href="index.html" class="logo">27<span>AFLAM</span></a>
-            <nav>
-                <a href="#" class="nav-link active" data-genre="trending">Trending</a>
-                <a href="#" class="nav-link" data-genre="action">Action</a>
-                <a href="#" class="nav-link" data-genre="comedy">Comedy</a>
-                <a href="#" class="nav-link" data-genre="horror">Horror</a>
-                <a href="#" class="nav-link" data-genre="drama">Drama</a>
-                <a href="#" class="nav-link" data-genre="scifi">Sci-Fi</a>
-                <a href="#" class="nav-link" data-genre="series-trending">Series</a>
-                <a href="#" class="nav-link" data-genre="anime">Anime</a>
-            </nav>
             <div class="search-box">
-                <input type="text" id="search" placeholder="Search movies...">
-                <button id="search-btn">&#128269;</button>
+                <input type="search" id="search" placeholder="Search movies..." aria-label="Search movies and shows">
+                <button id="search-btn" type="button" aria-label="Search">&#128269;</button>
             </div>
         </div>
     </header>
 
-    <main>
-        <section class="hero" id="hero">
+    <div class="floating-filters" id="floating-filters">
+        <nav class="filters-panel" id="filters-panel" aria-label="Content filters" hidden>
+            <a href="#" class="nav-link active" data-genre="trending"><span class="filter-icon">🔥</span><span>Trending</span></a>
+            <a href="#" class="nav-link" data-genre="top-rated"><span class="filter-icon">⭐</span><span>Top Rated</span></a>
+            <a href="#" class="nav-link" data-genre="now-playing"><span class="filter-icon">🎬</span><span>Now Playing</span></a>
+            <a href="#" class="nav-link" data-genre="upcoming"><span class="filter-icon">📅</span><span>Upcoming</span></a>
+            <a href="#" class="nav-link" data-genre="action"><span class="filter-icon">💥</span><span>Action</span></a>
+            <a href="#" class="nav-link" data-genre="comedy"><span class="filter-icon">😄</span><span>Comedy</span></a>
+            <a href="#" class="nav-link" data-genre="horror"><span class="filter-icon">👻</span><span>Horror</span></a>
+            <a href="#" class="nav-link" data-genre="drama"><span class="filter-icon">🎭</span><span>Drama</span></a>
+            <a href="#" class="nav-link" data-genre="scifi"><span class="filter-icon">🚀</span><span>Sci-Fi</span></a>
+            <a href="#" class="nav-link" data-genre="series-trending"><span class="filter-icon">📺</span><span>Series</span></a>
+            <a href="#" class="nav-link" data-genre="series-top"><span class="filter-icon">🏆</span><span>Best Series</span></a>
+            <a href="#" class="nav-link" data-genre="anime"><span class="filter-icon">🍜</span><span>Anime</span></a>
+        </nav>
+        <button class="filters-toggle" id="filters-toggle" type="button" aria-expanded="false" aria-controls="filters-panel" aria-label="Open filters">
+            <span>🎛️</span>
+            <strong>Filter</strong>
+        </button>
+    </div>
+
+    <main id="main-content" role="main">
+        <section class="hero" id="hero" role="img" aria-label="Featured content banner">
             <div class="hero-backdrop"></div>
             <div class="hero-gradient"></div>
             <div class="hero-content">
-                <h1>Discover & Watch</h1>
-                <p>Stream the latest movies in HD quality</p>
-                <button id="hero-btn" class="btn-primary">Explore Now</button>
+                <h1>27AFLAM</h1>
+                <p>Watch trending movies, hit series and anime in HD quality</p>
+                <button id="hero-btn" class="btn-primary" type="button">Explore Now</button>
             </div>
         </section>
 
@@ -48,7 +122,15 @@
                 <!-- Sections load dynamically -->
             </div>
             <div class="load-more-container">
-                <button id="load-more" class="btn-primary" style="display: none;">Load More</button>
+                <button id="load-more" class="btn-primary" type="button" style="display: none;">Load More</button>
+            </div>
+        </section>
+
+        <section id="about" class="seo-section">
+            <div class="seo-inner">
+                <h2>Watch Movies, Series and Anime on 27AFLAM</h2>
+                <p>27AFLAM helps visitors discover trending films, popular TV series, new releases, top rated titles and anime from one fast streaming directory. Browse by genre, search by title, open a watch page and continue with a clean HD viewing experience.</p>
+                <p>The site is built around fast navigation, responsive movie cards, lazy-loaded posters, adult-content filtering and dedicated pages for movies, series and anime.</p>
             </div>
         </section>
     </main>
@@ -103,8 +185,20 @@
                 <p>Availability depends on licensing and region. We update our library regularly.</p>
             </details>
         </div>
+        <noscript>
+            <p class="noscript-note">Enable JavaScript to load the latest movies, TV series and anime from TMDB.</p>
+        </noscript>
     </footer>
 
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('SW registered'))
+                    .catch((err) => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>
