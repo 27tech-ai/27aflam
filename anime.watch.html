@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch - 27AFLAM</title>
+    <title>Watch Anime - 27AFLAM</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         * {
@@ -16,7 +16,7 @@
             background: #0a0a0a;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #fff;
-            direction: ltr; /* للحفاظ على أرقام الحلقات والسيرفرات مرتبة بشكل صحيح */
+            direction: ltr;
         }
         
         header {
@@ -108,68 +108,13 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        .servers-bar {
-            background: #0f0f0f;
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 24px;
-        }
-        
-        .servers-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .servers-label {
-            font-size: 14px;
-            color: #888;
-            font-weight: 500;
-        }
-        
-        .server-status {
-            font-size: 12px;
-            color: #4caf50;
-        }
-        
-        .servers-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .server-btn {
-            background: #1a1a1a;
-            border: none;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.2s;
-        }
-        
-        .server-btn:hover {
-            background: #2a2a2a;
-            transform: scale(1.02);
-        }
-        
-        .server-btn.active {
-            background: #e50914;
-            color: white;
-        }
 
-        /* --- الأقسام الجديدة الخاصة بالحلقات والمواسم بنفس تصميم الموقع --- */
+        /* ─── قسم الحلقات والمواسم بنفس هوية الموقع ─── */
         .episodes-section {
             background: #0f0f0f;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 24px;
-            display: none; /* مخفي افتراضياً ويظهر فقط للمسلسلات والأنمي */
         }
 
         .section-label {
@@ -215,25 +160,26 @@
         }
 
         .episodes-grid {
-            display: grid;
-            grid-template-cols: repeat(auto-fill, minmax(50px, 1fr));
-            gap: 10px;
-        }
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
-        .ep-btn {
-            aspect-ratio: 1;
-            border-radius: 8px;
-            border: 1px solid #2a2a2a;
-            background: #1a1a1a;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+.ep-btn {
+    width: 50px; /* حجم ثابت وصغير للزر */
+    height: 50px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
         .ep-btn:hover { background: #2a2a2a; }
         .ep-btn.active {
@@ -362,8 +308,6 @@
         @media (max-width: 768px) {
             .watch-page { padding: 16px; }
             .movie-info h1 { font-size: 22px; }
-            .server-btn { padding: 5px 10px; font-size: 10px; }
-            .servers-grid { gap: 6px; }
         }
     </style>
 </head>
@@ -376,12 +320,12 @@
     </header>
 
     <main class="watch-page">
-        <div class="servers-bar" id="servers-container">
-            <div class="servers-header">
-                <span class="servers-label" id="servers-title-label">🎬 Select Server (16 sources)</span>
-                <span class="server-status" id="server-status">✅ StreamIMDb active</span>
+        <div class="player-container">
+            <div class="player-loading" id="player-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading player...</span>
             </div>
-            <div class="servers-grid" id="server-buttons"></div>
+            <iframe id="player" src="" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer"></iframe>
         </div>
 
         <div class="episodes-section" id="episodes-container">
@@ -390,14 +334,6 @@
             
             <div class="section-label"><span></span>Episodes</div>
             <div class="episodes-grid" id="episodes-grid"></div>
-        </div>
-        
-        <div class="player-container">
-            <div class="player-loading" id="player-loading">
-                <div class="loading-spinner"></div>
-                <span>Loading player...</span>
-            </div>
-            <iframe id="player" src="" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer"></iframe>
         </div>
         
         <div class="movie-info" id="movie-info">
@@ -417,7 +353,7 @@
         </div>
         
         <div class="similar-section" id="similar-section" style="display:none;">
-            <h3>🎬 Similar</h3>
+            <h3>🎬 Similar Anime</h3>
             <div class="similar-grid" id="similar-grid"></div>
         </div>
     </main>
@@ -432,17 +368,7 @@
         const IMG = 'https://image.tmdb.org/t/p/w185';
         const ADULT_KEYWORDS = ['hentai', 'ecchi', 'porn', 'xxx', 'sex', 'nsfw', 'uncensored', 'erotic', '18+'];
         
-        // سيرفرات الأفلام العادية
-        const SERVERS = [
-            { name: '🚀 StreamIMDb', url: (id) => `https://streamimdb.ru/embed/movie/${id}` },
-            { name: '📺 2Embed', url: (id) => `https://www.2embed.cc/embed/${id}` },
-            { name: '🎬 EmbedStream', url: (id) => `https://embedstream.com/movie/imdb/${id}` },
-            { name: '🍿 Movies2Watch', url: (id) => `https://movies2watch.cc/embed/movie/${id}` }
-        ];
-        
-        let currentImdbId = null;
         let currentTmdbId = null;
-        let contentType = 'movie'; // الافتراضي هو فيلم
         let currentSeason = 1;
         let currentEpisode = 1;
         let totalSeasons = 1;
@@ -462,7 +388,6 @@
 
         function blockContent() {
             document.getElementById('player').src = '';
-            document.getElementById('servers-container').style.display = 'none';
             document.getElementById('episodes-container').style.display = 'none';
             document.getElementById('cast-section').style.display = 'none';
             document.getElementById('movie-title').textContent = 'Content blocked';
@@ -473,8 +398,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             currentTmdbId = params.get('id');
-            const imdbId = params.get('imdb');
-            contentType = params.get('type') || 'movie'; // استقبال النوع من الرابط (movie أو tv أو anime)
             
             const player = document.getElementById('player');
             const loadEl = document.getElementById('player-loading');
@@ -483,79 +406,15 @@
                 loadEl.style.display = 'none';
             });
             
-            if (!currentTmdbId && imdbId) {
-                currentImdbId = imdbId;
-            }
-
-            if (contentType === 'movie') {
-                // نظام تشغيل الأفلام العادي
-                document.getElementById('episodes-container').style.display = 'none';
-                if (imdbId) {
-                    currentImdbId = imdbId;
-                    renderMovieServers();
-                    startMoviePlayer(imdbId, 0);
-                    if (currentTmdbId) loadDetails(currentTmdbId, 'movie');
-                } else if (currentTmdbId) {
-                    fetchImdbAndPlay(currentTmdbId);
-                }
+            if (currentTmdbId) {
+                loadAnime(currentTmdbId);
+                loadDetails(currentTmdbId);
             } else {
-                // نظام تشغيل المسلسلات والأنمي (tv / anime)
-                document.getElementById('servers-container').style.display = 'none'; // إخفاء سيرفرات الفيلم
-                document.getElementById('episodes-container').style.display = 'block'; // إظهار أزرار الحلقات
-                if (currentTmdbId) {
-                    loadTVShow(currentTmdbId);
-                    loadDetails(currentTmdbId, 'tv');
-                }
+                document.getElementById('movie-title').textContent = "Anime not found";
             }
         });
         
-        // ─── وظائف الأفلام ───────────────────────────────────
-        function renderMovieServers() {
-            const container = document.getElementById('server-buttons');
-            container.innerHTML = SERVERS.map((server, index) => `
-                <button class="server-btn" data-index="${index}" onclick="switchServer(${index})">
-                    ${server.name}
-                </button>
-            `).join('');
-            markServerActive(0);
-        }
-        
-        function markServerActive(index) {
-            const btns = document.querySelectorAll('.server-btn');
-            btns.forEach((btn, i) => btn.classList.toggle('active', i === index));
-        }
-        
-        window.switchServer = function(index) {
-            if (currentImdbId && SERVERS[index]) {
-                markServerActive(index);
-                startMoviePlayer(currentImdbId, index);
-            }
-        };
-        
-        function startMoviePlayer(imdbId, serverIndex = 0) {
-            document.getElementById('player-loading').style.display = 'flex';
-            document.getElementById('player').src = SERVERS[serverIndex].url(imdbId);
-        }
-        
-        async function fetchImdbAndPlay(tmdbId) {
-            try {
-                const response = await fetch(addAdultFilter(`${BASE}/movie/${tmdbId}/external_ids?api_key=${API_KEY}`));
-                const data = await response.json();
-                if (data.imdb_id) {
-                    currentImdbId = data.imdb_id;
-                    renderMovieServers();
-                    startMoviePlayer(currentImdbId, 0);
-                    loadDetails(tmdbId, 'movie');
-                } else {
-                    document.getElementById('player-loading').innerHTML = '<p class="error">❌ No IMDb ID found.</p>';
-                }
-            } catch(error) {
-                document.getElementById('player-loading').innerHTML = '<p class="error">❌ Failed to load.</p>';
-            }
-        }
-        
-        // ─── وظائف المسلسلات والأنمي ───────────────────────────
-        async function loadTVShow(tmdbId) {
+        async function loadAnime(tmdbId) {
             try {
                 const res = await fetch(addAdultFilter(`${BASE}/tv/${tmdbId}?api_key=${API_KEY}`));
                 const data = await res.json();
@@ -565,7 +424,7 @@
                 buildSeasonTabs();
                 await loadEpisodes(1);
             } catch (err) {
-                console.error("Error loading show:", err);
+                console.error("Error loading anime:", err);
             }
         }
         
@@ -605,7 +464,7 @@
                     grid.appendChild(btn);
                 });
                 
-                playEpisode(1); // تشغيل الحلقة الأولى تلقائياً عند تحميل الموسم
+                playEpisode(1);
             } catch (err) {
                 grid.innerHTML = `<div class="error">Failed to load episodes.</div>`;
             }
@@ -616,32 +475,27 @@
             document.querySelectorAll(".ep-btn").forEach(b => b.classList.toggle("active", parseInt(b.textContent) === ep));
             
             document.getElementById('player-loading').style.display = 'flex';
-            // توليد الرابط المباشر للحلقة بناءً على السيرفر الحالي الشغال للمسلسلات والأنمي
             const url = `https://streamimdb.ru/embed/tv/${currentTmdbId}/${currentSeason}/${ep}`;
             document.getElementById("player").src = url;
         }
 
-        // ─── جلب تفاصيل ومعلومات المحتوى ────────────────────────
-        async function loadDetails(tmdbId, type) {
+        async function loadDetails(tmdbId) {
             try {
-                const response = await fetch(addAdultFilter(`${BASE}/${type}/${tmdbId}?api_key=${API_KEY}`));
+                const response = await fetch(addAdultFilter(`${BASE}/tv/${tmdbId}?api_key=${API_KEY}`));
                 const item = await response.json();
                 if (isBlockedContent(item)) return blockContent();
                 
-                document.getElementById('movie-title').textContent = item.title || item.name;
+                document.getElementById('movie-title').textContent = item.name;
                 document.getElementById('movie-overview').textContent = item.overview || 'No description available.';
                 document.getElementById('movie-rating').textContent = `⭐ ${item.vote_average?.toFixed(1) || 'N/A'}`;
-                document.getElementById('movie-year').textContent = (item.release_date || item.first_air_date)?.slice(0, 4) || '';
+                document.getElementById('movie-year').textContent = item.first_air_date?.slice(0, 4) || '';
                 document.getElementById('movie-genre').textContent = item.genres?.map(g => g.name).join(', ') || '';
                 
-                if (item.runtime) {
-                    document.getElementById('movie-runtime').textContent = `${Math.floor(item.runtime / 60)}h ${item.runtime % 60}m`;
-                } else if (item.episode_run_time) {
-                    document.getElementById('movie-runtime').textContent = `${item.episode_run_time[0] || ''}m per ep`;
+                if (item.episode_run_time && item.episode_run_time.length) {
+                    document.getElementById('movie-runtime').textContent = `${item.episode_run_time[0]}m per ep`;
                 }
                 
-                // جلب الممثلين (Cast)
-                const castResponse = await fetch(addAdultFilter(`${BASE}/${type}/${tmdbId}/credits?api_key=${API_KEY}`));
+                const castResponse = await fetch(addAdultFilter(`${BASE}/tv/${tmdbId}/credits?api_key=${API_KEY}`));
                 const castData = await castResponse.json();
                 const cast = (castData.cast || []).slice(0, 15);
                 

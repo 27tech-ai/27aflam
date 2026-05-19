@@ -84,6 +84,8 @@ nav { display: flex; gap: 0.3rem; flex-wrap: wrap; }
 .movie-card .poster-wrapper { position: relative; overflow: hidden; aspect-ratio: 2/3; background: #222; }
 .movie-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
 .movie-card:hover img { transform: scale(1.08); }
+.poster-sensitive img { filter: blur(18px) brightness(0.35); transform: none !important; }
+.poster-sensitive .poster-block-label { position: absolute; inset: auto 8px 8px 8px; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; text-align: center; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 6px 4px; z-index: 2; }
 
 .movie-card .play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
 .movie-card:hover .play-overlay { opacity: 1; }

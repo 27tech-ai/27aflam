@@ -2,10 +2,28 @@ const API_KEY = '581842026857dccc1762ce91bff8f0aa';
 const BASE = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/w500';
 const IMG_ORIG = 'https://image.tmdb.org/t/p/original';
+const ADULT_KEYWORDS = ['hentai', 'ecchi', 'porn', 'xxx', 'sex', 'nsfw', 'uncensored', 'erotic', '18+'];
 
 const GENRES = { trending: null, action: 28, comedy: 35, horror: 27, drama: 18, scifi: 878 };
 
 let currentGenre = 'trending', movies = [], featured = [], page = 1, totalPg = 1, loading = false;
+
+function addAdultFilter(url) {
+    const u = new URL(url);
+    u.searchParams.set('include_adult', 'false');
+    return u.toString();
+}
+
+function isBlockedContent(item) {
+    if (!item) return true;
+    if (item.adult === true) return true;
+    const text = `${item.title || ''} ${item.name || ''} ${item.original_title || ''} ${item.original_name || ''} ${item.overview || ''}`.toLowerCase();
+    return ADULT_KEYWORDS.some(k => text.includes(k));
+}
+
+function filterSafeContent(items) {
+    return (items || []).filter(i => !isBlockedContent(i));
+}
 
 // Theme / header
 function initAutoHideHeader() {
@@ -34,12 +52,29 @@ function setupEvents() {
     document.querySelectorAll('.nav-link').forEach(l => l.addEventListener('click', e => {
         e.preventDefault();
         const g = e.target.dataset.genre;
-        if (g) { setActiveNav(g); page = 1; movies = []; loadMainSection(g); }
+        if (g) {
+            setActiveNav(g);
+            page = 1;
+            movies = [];
+            if (g === 'series-trending') loadSeriesSection('series-trending');
+            else if (g === 'series-top') loadSeriesSection('series-top');
+            else if (g === 'anime') loadAnimeSection();
+            else loadMainSection(g);
+        }
     }));
     document.querySelectorAll('.footer-links a[data-genre]').forEach(l => l.addEventListener('click', e => {
         e.preventDefault();
         const g = e.target.dataset.genre;
-        if (g) { setActiveNav(g); page = 1; movies = []; loadMainSection(g); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        if (g) {
+            setActiveNav(g);
+            page = 1;
+            movies = [];
+            if (g === 'series-trending') loadSeriesSection('series-trending');
+            else if (g === 'series-top') loadSeriesSection('series-top');
+            else if (g === 'anime') loadAnimeSection();
+            else loadMainSection(g);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }));
     const si = document.getElementById('search'), sb = document.getElementById('search-btn');
     sb.addEventListener('click', () => { const q = si.value.trim(); if (q) { page = 1; movies = []; doSearch(q); } });
@@ -76,9 +111,9 @@ async function loadFeatured() {
     const c = document.getElementById('featured-scroll');
     if (!c) return;
     try {
-        const r = await fetch(`${BASE}/trending/movie/week?api_key=${API_KEY}`);
+        const r = await fetch(addAdultFilter(`${BASE}/trending/movie/week?api_key=${API_KEY}`));
         const d = await r.json();
-        featured = (d.results || []).slice(0, 10);
+        featured = filterSafeContent(d.results).slice(0, 10);
         const rand = featured[Math.floor(Math.random() * featured.length)];
         if (rand?.backdrop_path) document.querySelector('.hero-backdrop').style.backgroundImage = `url(${IMG_ORIG}${rand.backdrop_path})`;
         c.innerHTML = featured.map(m => {
@@ -103,10 +138,11 @@ async function loadMainSection(genre) {
         else if (genre === 'trending') { url = `${BASE}/trending/movie/week?api_key=${API_KEY}&page=${page}`; title = 'Trending Now'; }
         else { url = `${BASE}/discover/movie?api_key=${API_KEY}&with_genres=${GENRES[genre]}&sort_by=popularity.desc&page=${page}`; title = genre.charAt(0).toUpperCase() + genre.slice(1) + ' Movies'; }
 
-        const r = await fetch(url);
+        const r = await fetch(addAdultFilter(url));
         const d = await r.json();
         totalPg = d.total_pages || 1;
-        movies = page === 1 ? (d.results || []) : [...movies, ...(d.results || [])];
+        const safeResults = filterSafeContent(d.results);
+        movies = page === 1 ? safeResults : [...movies, ...safeResults];
 
         c.innerHTML = `<div class="section-block"><div class="section-header"><h2>${title}</h2><div class="section-line"></div></div><div class="movies-grid">${movies.map(cardHTML).join('')}</div></div>`;
         lm.style.display = page < totalPg ? 'block' : 'none';
@@ -122,14 +158,20 @@ async function loadMore() {
         else if (currentGenre === 'top-rated') url = `${BASE}/movie/top_rated?api_key=${API_KEY}&page=${page}`;
         else if (currentGenre === 'now-playing') url = `${BASE}/movie/now_playing?api_key=${API_KEY}&page=${page}`;
         else if (currentGenre === 'upcoming') url = `${BASE}/movie/upcoming?api_key=${API_KEY}&page=${page}`;
+        else if (currentGenre === 'series-trending') url = `${BASE}/trending/tv/week?api_key=${API_KEY}&page=${page}`;
+        else if (currentGenre === 'series-top') url = `${BASE}/tv/top_rated?api_key=${API_KEY}&page=${page}`;
+        else if (currentGenre === 'anime') url = `${BASE}/discover/tv?api_key=${API_KEY}&with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${page}`;
         else url = `${BASE}/discover/movie?api_key=${API_KEY}&with_genres=${GENRES[currentGenre]}&sort_by=popularity.desc&page=${page}`;
 
-        const r = await fetch(url);
+        const r = await fetch(addAdultFilter(url));
         const d = await r.json();
         totalPg = d.total_pages || 1;
-        movies = [...movies, ...(d.results || [])];
+        movies = [...movies, ...filterSafeContent(d.results)];
         const grid = document.querySelector('.movies-grid');
-        if (grid) grid.innerHTML = movies.map(cardHTML).join('');
+        if (grid) {
+            const cardFunc = currentGenre.includes('series') ? seriesCardHTML : (currentGenre === 'anime' ? animeCardHTML : cardHTML);
+            grid.innerHTML = movies.map(cardFunc).join('');
+        }
         document.getElementById('load-more').style.display = page < totalPg ? 'block' : 'none';
     } catch(e) {}
     loading = false;
@@ -142,10 +184,11 @@ async function doSearch(query) {
     c.innerHTML = '<div class="loading active"><div class="loading-spinner"></div></div>';
 
     try {
-        const r = await fetch(`${BASE}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=${page}`);
+        const r = await fetch(addAdultFilter(`${BASE}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=${page}`));
         const d = await r.json();
         totalPg = d.total_pages || 1;
-        movies = page === 1 ? (d.results || []) : [...movies, ...(d.results || [])];
+        const safeResults = filterSafeContent(d.results);
+        movies = page === 1 ? safeResults : [...movies, ...safeResults];
 
         c.innerHTML = `<div class="section-block"><div class="section-header"><h2>Search: "${query}"</h2><div class="section-line"></div></div>${movies.length ? `<div class="movies-grid">${movies.map(cardHTML).join('')}</div>` : '<p class="no-results">No results found.</p>'}</div>`;
         lm.style.display = page < totalPg ? 'block' : 'none';
@@ -153,3 +196,103 @@ async function doSearch(query) {
 }
 
 function watchMovie(id, imdb, title) { window.location.href = `watch.html?id=${id}&imdb=${imdb}&title=${title}`; }
+
+// ─── SERIES ──────────────────────────────────────────────
+function watchSeries(id, title) { window.location.href = `series.watch.html?id=${id}&title=${encodeURIComponent(title)}`; }
+
+function seriesCardHTML(m) {
+    const poster = m.poster_path ? IMG + m.poster_path : '';
+    const rating = m.vote_average ? (m.vote_average * 10).toFixed(0) : 'NR';
+    const yr = (m.first_air_date || '').slice(0, 4);
+    const cls = m.vote_average ? ratingClass(m.vote_average * 10) : 'rating-mid';
+    return `<div class="movie-card" onclick="watchSeries('${m.id}','${m.name||''}')"><div class="poster-wrapper">${poster ? `<img data-src="${poster}" class="lazy-poster" alt="">` : ''}<div class="rating-badge ${cls}">${rating}%</div><div class="play-overlay"></div></div><div class="info"><div class="title">${m.name||''}</div><div class="year">${yr}</div></div></div>`;
+}
+
+async function loadSeriesSection(genre) {
+    currentGenre = genre;
+    const c = document.getElementById('sections-container');
+    const lm = document.getElementById('load-more');
+    c.innerHTML = '';
+    loading = true;
+    try {
+        const SERIES_GENRES = { drama: 18, action: 10759, comedy: 35, scifi: 10765, anime: 16 };
+        let url, title;
+        if (genre === 'series-trending') { url = `${BASE}/trending/tv/week?api_key=${API_KEY}&page=${page}`; title = '📺 Trending Series'; }
+        else if (genre === 'series-top') { url = `${BASE}/tv/top_rated?api_key=${API_KEY}&page=${page}`; title = '⭐ Top Rated Series'; }
+        else { url = `${BASE}/discover/tv?api_key=${API_KEY}&with_genres=${SERIES_GENRES[genre]||18}&sort_by=popularity.desc&page=${page}`; title = genre.charAt(0).toUpperCase() + genre.slice(1) + ' Series'; }
+        const r = await fetch(addAdultFilter(url));
+        const d = await r.json();
+        totalPg = d.total_pages || 1;
+        const safeResults = filterSafeContent(d.results);
+        movies = page === 1 ? safeResults : [...movies, ...safeResults];
+        c.innerHTML = `<div class="section-block"><div class="section-header"><h2>${title}</h2><div class="section-line"></div></div><div class="movies-grid">${movies.map(seriesCardHTML).join('')}</div></div>`;
+        lm.style.display = page < totalPg ? 'block' : 'none';
+    } catch(e) { c.innerHTML = '<p class="error">Failed to load.</p>'; }
+    loading = false;
+}
+
+async function doSearchSeries(query) {
+    const c = document.getElementById('sections-container');
+    const lm = document.getElementById('load-more');
+    setActiveNav(null);
+    c.innerHTML = '<div class="loading active"><div class="loading-spinner"></div></div>';
+    try {
+        const r = await fetch(addAdultFilter(`${BASE}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=${page}`));
+        const d = await r.json();
+        totalPg = d.total_pages || 1;
+        const safeResults = filterSafeContent(d.results);
+        movies = page === 1 ? safeResults : [...movies, ...safeResults];
+        c.innerHTML = `<div class="section-block"><div class="section-header"><h2>Series: "${query}"</h2><div class="section-line"></div></div>${movies.length ? `<div class="movies-grid">${movies.map(seriesCardHTML).join('')}</div>` : '<p class="no-results">No results found.</p>'}</div>`;
+        lm.style.display = page < totalPg ? 'block' : 'none';
+    } catch(e) { c.innerHTML = '<p class="error">Search failed.</p>'; }
+}
+
+// ─── ANIME ───────────────────────────────────────────────
+function watchAnime(id, title) { window.location.href = `anime.watch.html?id=${id}&title=${encodeURIComponent(title)}`; }
+
+function animeCardHTML(m) {
+    const poster = m.poster_path ? IMG + m.poster_path : '';
+    const rating = m.vote_average ? (m.vote_average * 10).toFixed(0) : 'NR';
+    const yr = (m.first_air_date || '').slice(0, 4);
+    const cls = m.vote_average ? ratingClass(m.vote_average * 10) : 'rating-mid';
+    const text = `${m.name || ''} ${m.original_name || ''} ${m.overview || ''}`.toLowerCase();
+    const girlKeywords = ['girl', 'girls', 'female', 'waifu', 'idol', 'magical girl', 'schoolgirl', 'princess', 'shoujo'];
+    const shouldHide = girlKeywords.some(k => text.includes(k));
+    return `<div class="movie-card" onclick="watchAnime('${m.id}','${m.name||''}')"><div class="poster-wrapper ${shouldHide ? 'poster-sensitive' : ''}">${poster ? `<img data-src="${poster}" class="lazy-poster" alt="">` : ''}${shouldHide ? '<div class="poster-block-label">COVER BLOCKED</div>' : ''}<div class="rating-badge ${cls}">${rating}%</div><div class="play-overlay"></div></div><div class="info"><div class="title">${m.name||''}</div><div class="year">${yr}</div></div></div>`;
+}
+
+async function loadAnimeSection() {
+    currentGenre = 'anime';
+    const c = document.getElementById('sections-container');
+    const lm = document.getElementById('load-more');
+    c.innerHTML = '';
+    loading = true;
+    try {
+        // Anime = animation genre (16) + origin Japan
+        const url = `${BASE}/discover/tv?api_key=${API_KEY}&with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${page}`;
+        const r = await fetch(addAdultFilter(url));
+        const d = await r.json();
+        totalPg = d.total_pages || 1;
+        const safeResults = filterSafeContent(d.results);
+        movies = page === 1 ? safeResults : [...movies, ...safeResults];
+        c.innerHTML = `<div class="section-block"><div class="section-header"><h2>🍜 Anime</h2><div class="section-line"></div></div><div class="movies-grid">${movies.map(animeCardHTML).join('')}</div></div>`;
+        lm.style.display = page < totalPg ? 'block' : 'none';
+    } catch(e) { c.innerHTML = '<p class="error">Failed to load.</p>'; }
+    loading = false;
+}
+
+async function doSearchAnime(query) {
+    const c = document.getElementById('sections-container');
+    const lm = document.getElementById('load-more');
+    setActiveNav(null);
+    c.innerHTML = '<div class="loading active"><div class="loading-spinner"></div></div>';
+    try {
+        const r = await fetch(addAdultFilter(`${BASE}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=${page}`));
+        const d = await r.json();
+        totalPg = d.total_pages || 1;
+        const results = filterSafeContent(page === 1 ? (d.results || []) : [...movies, ...(d.results || [])]).filter(m => m.origin_country?.includes('JP'));
+        movies = results;
+        c.innerHTML = `<div class="section-block"><div class="section-header"><h2>Anime: "${query}"</h2><div class="section-line"></div></div>${results.length ? `<div class="movies-grid">${results.map(animeCardHTML).join('')}</div>` : '<p class="no-results">No results found.</p>'}</div>`;
+        lm.style.display = page < totalPg ? 'block' : 'none';
+    } catch(e) { c.innerHTML = '<p class="error">Search failed.</p>'; }
+}
