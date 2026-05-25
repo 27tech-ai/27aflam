@@ -1,3 +1,19 @@
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDfJfJfJfJfJfJfJfJfJfJfJfJfJfJfJfJf",
+  authDomain: "movie-app-1f4f4.firebaseapp.com",
+  projectId: "movie-app-1f4f4",
+  storageBucket: "movie-app-1f4f4.appspot.com",
+  messagingSenderId: "1f4f4f4f4f4f",
+  appId: "1f4f4f4f4f4f",
+  measurementId: "G-YOUR_MEASUREMENT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const API_KEY = '581842026857dccc1762ce91bff8f0aa';
 const BASE = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/w500';
@@ -29,7 +45,22 @@ function logFailure(context, error) {
 
 // Fetch with timeout and local JSON fallback
 async function fetchWithFallback(apiUrl, fallbackKey) {
-    // Try API first with timeout
+    // Try fetching from Firestore first if fallbackKey corresponds to a collection
+    if (['trending', 'action', 'horror'].includes(fallbackKey)) {
+        try {
+            const querySnapshot = await getDocs(collection(db, fallbackKey));
+            const data = querySnapshot.docs.map(doc => doc.data());
+            if (data.length > 0) {
+                console.log(`Fetched data for ${fallbackKey} from Firestore.`);
+                return data;
+            }
+        } catch (firestoreError) {
+            logFailure(`Firestore fetch failed for ${fallbackKey}`, firestoreError);
+            // Continue to API or local JSON fallback if Firestore fails
+        }
+    }
+
+    // Original API fetch logic
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
@@ -37,7 +68,6 @@ async function fetchWithFallback(apiUrl, fallbackKey) {
         clearTimeout(timeoutId);
         if (response.ok) {
             const data = await response.json();
-            // Cache successful response
             if (fallbackKey) LOCAL_DATA_CACHE[fallbackKey] = data;
             return data;
         }
@@ -45,9 +75,21 @@ async function fetchWithFallback(apiUrl, fallbackKey) {
         logFailure('API fetch failed', apiError);
     }
 
-    // Fallback to local JSON file
+    // Original Fallback to local JSON file
     if (fallbackKey) {
         try {
+            const response = await fetch(`/data/${fallbackKey}.json`);
+            if (response.ok) {
+                const data = await response.json();
+                LOCAL_DATA_CACHE[fallbackKey] = data;
+                return data;
+            }
+        } catch (jsonError) {
+            logFailure('Local JSON fallback failed', jsonError);
+        }
+    }
+    return null; // Return null if all methods fail
+}
             if (LOCAL_DATA_CACHE[fallbackKey]) {
                 return LOCAL_DATA_CACHE[fallbackKey];
             }
@@ -387,7 +429,7 @@ function seriesCardHTML(m) {
     const srcset = m.poster_path
         ? `https://image.tmdb.org/t/p/w342${m.poster_path} 342w, https://image.tmdb.org/t/p/w500${m.poster_path} 500w, https://image.tmdb.org/t/p/w780${m.poster_path} 780w`
         : '';
-    return `<div class="movie-card" onclick="watchSeries('${m.id}','${escapeJS(m.name||'')}')"><div class="poster-wrapper">${poster ? `<img data-src="${poster}" ${srcset ? `srcset="${srcset}" sizes="(max-width: 480px) 120px, (max-width: 768px) 155px, 220px"` : ''} class="lazy-poster" alt="${title} poster" loading="lazy">` : ''}<div class="rating-badge ${cls}">${rating}%</div><div class="play-overlay"></div></div><div class="info"><div class="title">${title}</div><div class="year">${yr}</div></div></div>`;
+    return `<div class="movie-card" onclick="watchSeries('${m.id}','${escapeJS(m.name||'')}')"><div class="poster-wrapper">${poster ? `<img data-src="${poster}" ${srcset ? `srcset="${srcset}" sizes="(max-width: 480px) 120px, (max-width: 768px) 155px, 220px"` : ''} class="lazy-poster" alt="${title} poster" loading="lazy">` : ''}${shouldHide ? '<div class="poster-block-label">COVER BLOCKED</div>' : ''}<div class="rating-badge ${cls}">${rating}%</div><div class="play-overlay"></div></div><div class="info"><div class="title">${title}</div><div class="year">${yr}</div></div></div>`;
 }
 
 async function loadSeriesSection(genre) {
